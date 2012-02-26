@@ -3,13 +3,13 @@
 /**
  *
  * @package    sfFacebookConnectPlugin
+ * @author     Gergely Csépány <cheoppy@gmail.com>
  * @author     Fabrice Bernhard
  *
  */
-class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
-{
+class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter {
 
-   /**
+  /**
    * Gets the Php name given to the field
    *
    * @param string $field
@@ -18,8 +18,7 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @since 2009-05-17
    * @since 2009-09-01 added configurability for Doctrine
    */
-  public function getProfilePhpName($field_name)
-  {
+  public function getProfilePhpName($field_name) {
 
     return $this->getFieldName($field_name);
   }
@@ -33,8 +32,7 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @since 2009-05-17
    * @since 2009-09-01 added configurability for Doctrine
    */
-  public function getProfileColumnName($field_name)
-  {
+  public function getProfileColumnName($field_name) {
 
     return $this->getFieldName($field_name);
   }
@@ -46,10 +44,9 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @param string $property_name
    * @param mixed $property
    */
-  public function setUserProfileProperty($user, $property_name, $property)
-  {
+  public function setUserProfileProperty($user, $property_name, $property) {
     $property_name = $this->getFieldName($property_name);
-    $user->getProfile()->$property_name = $property;
+    $user->$property_name = $property;
   }
 
   /**
@@ -61,11 +58,10 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @author fabriceb
    * @since 2009-05-17
    */
-  public function getUserProfileProperty($user, $property_name)
-  {
+  public function getUserProfileProperty($user, $property_name) {
     $property_name = $this->getFieldName($property_name);
-    
-    return $user->getProfile()->$property_name;
+
+    return $user->$property_name;
   }
 
   /**
@@ -77,23 +73,20 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @author fabriceb
    * @since 2009-05-17
    */
-  public function retrieveSfGuardUserByFacebookUid($facebook_uid, $isActive = true)
-  {
+  public function retrieveSfGuardUserByFacebookUid($facebook_uid, $isActive = true) {
     $q = Doctrine_Query::create()
-      ->from('sfGuardUser u')
-      ->innerJoin('u.Profile p')
-      ->where('p.'.$this->getFacebookUidColumn().' = ?', $facebook_uid)
-      ->andWhere('u.is_active = ?', $isActive);
+            ->from('sfGuardUser u')
+            ->where('u.' . $this->getFacebookUidColumn() . ' = ?', $facebook_uid)
+            ->andWhere('u.is_active = ?', $isActive);
 
-    if ($q->count())
-    {
+    if ($q->count()) {
 
       return $q->fetchOne();
     }
 
     return null;
   }
-  
+
   /**
    * gets a sfGuardUser using the facebook_uid column of his Profile class or his email_hash
    *
@@ -103,19 +96,16 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @author fabriceb
    * @since 2009-05-17
    */
-  public function getSfGuardUserByFacebookUid($facebook_uid, $isActive = true)
-  {
+  public function getSfGuardUserByFacebookUid($facebook_uid, $isActive = true) {
     $sfGuardUser = self::retrieveSfGuardUserByFacebookUid($facebook_uid, $isActive);
-    
-    if (!$sfGuardUser instanceof sfGuardUser)
-    {
-      if (sfConfig::get('sf_logging_enabled'))
-      {
+
+    if (!$sfGuardUser instanceof sfGuardUser) {
+      if (sfConfig::get('sf_logging_enabled')) {
         sfContext::getInstance()->getLogger()->info('{sfFacebookConnect} No user exists with current facebook_uid');
       }
       $sfGuardUser = sfFacebookConnect::getSfGuardUserByFacebookEmail($facebook_uid, $isActive);
     }
-    
+
     return $sfGuardUser;
   }
 
@@ -128,22 +118,17 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @author fabriceb
    * @since 2009-05-17
    */
-  public function getSfGuardUserByEmailHashes($email_hashes, $isActive = true)
-  {
-    if (!is_array($email_hashes) || count($email_hashes) == 0)
-    {
-
+  public function getSfGuardUserByEmailHashes($email_hashes, $isActive = true) {
+    if (!is_array($email_hashes) || count($email_hashes) == 0) {
       return null;
     }
 
     $q = Doctrine_Query::create()
-      ->from('sfGuardUser u')
-      ->innerJoin('u.Profile p')
-      ->whereIn('p.'.$this->getEmailHashColumn(), $email_hashes)
-      ->andWhere('u.is_active = ?', $isActive);
+            ->from('sfGuardUser u')
+            ->whereIn('u.' . $this->getEmailHashColumn(), $email_hashes)
+            ->andWhere('u.is_active = ?', $isActive);
 
-    if ($q->count())
-    {
+    if ($q->count()) {
       // NOTE: if a user has multiple emails on their facebook account,
       // and more than one is registered on the site, then we will
       // only return the first one.
@@ -162,11 +147,10 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @author fabriceb
    * @since 2009-08-11
    */
-  public function createSfGuardUserWithFacebookUid($facebook_uid)
-  {
+  public function createSfGuardUserWithFacebookUid($facebook_uid) {
     $con = Doctrine::getConnectionByTableName('sfGuardUser');
 
-    return parent::createSfGuardUserWithFacebookUidAndCon($facebook_uid, $con);
+    return $this->createSfGuardUserWithFacebookUidAndCon($facebook_uid, $con);
   }
 
   /**
@@ -176,37 +160,58 @@ class sfFacebookDoctrineGuardAdapter extends sfFacebookGuardAdapter
    * @author fabriceb
    * @since 2009-05-17
    */
-  public function getNonRegisteredUsers()
-  {
+  public function getNonRegisteredUsers() {
     $q = Doctrine_Query::create()
-      ->from('sfGuardUser u')
-      ->innerJoin('u.Profile p')
-      ->where('p.'.$this->getEmailHashColumn().' IS NULL');
+            ->from('sfGuardUser u')
+            ->where('u.' . $this->getEmailHashColumn() . ' IS NULL');
 
     return $q->execute()->getData();
   }
 
   /**
-  *
-  * @param string $cookie
-  * @return sfGuardUser
-  * @author fabriceb
-  * @since Aug 10, 2009
-  */
-  public function retrieveSfGuardUserByCookie($cookie)
-  {
+   *
+   * @param string $cookie
+   * @return sfGuardUser
+   * @author fabriceb
+   * @since Aug 10, 2009
+   */
+  public function retrieveSfGuardUserByCookie($cookie) {
     $q = Doctrine_Query::create()
-      ->from('sfGuardRememberKey r')
-      ->innerJoin('r.sfGuardUser u')
-      ->where('r.remember_key = ?', $cookie);
+            ->from('sfGuardRememberKey r')
+            ->innerJoin('r.sfGuardUser u')
+            ->where('r.remember_key = ?', $cookie);
 
-    if ($q->count())
-    {
+    if ($q->count()) {
 
       return $q->fetchOne()->sfGuardUser;
     }
 
     return null;
   }
-}
 
+  public function createSfGuardUserWithFacebookUidAndCon($facebook_uid, $con) {
+    $sfGuardUser = new sfGuardUser();
+    $sfGuardUser->setUsername('Facebook_' . $facebook_uid);
+    $this->setUserFacebookUid($sfGuardUser, $facebook_uid);
+    sfFacebookConnect::newSfGuardConnectionHook($sfGuardUser, $facebook_uid);
+
+    // Save them into the database using a transaction to ensure a Facebook sfGuardUser cannot be stored without its facebook uid
+    try {
+      if (method_exists($con, 'begin')) {
+        $con->begin();
+      } else {
+        $con->beginTransaction();
+      }
+      $sfGuardUser->save();
+      // profile saving is deleted here
+      $con->commit();
+    } catch (Exception $e) {
+      $con->rollback();
+      throw $e;
+    }
+    $this->setDefaultPermissions($sfGuardUser);
+
+    return $sfGuardUser;
+  }
+
+}
